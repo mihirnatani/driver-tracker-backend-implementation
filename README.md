@@ -1,5 +1,4 @@
-[README (2).md](https://github.com/user-attachments/files/26203369/README.2.md)
-# 🚗 Driver Tracker — Real-Time Location Tracking System
+# Driver Tracker — Real-Time Location Tracking System
 
 A **simplified backend implementation** exploring the core concepts behind real-time driver location tracking, built with **Spring Boot**, **WebSockets**, and **Redis**. This is a learning-oriented project that demonstrates how delivery and taxi apps push live driver location to passengers — without refreshing.
 
