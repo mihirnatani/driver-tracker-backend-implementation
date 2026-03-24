@@ -1,7 +1,8 @@
-[README.md](https://github.com/user-attachments/files/26203280/README.md)
-# Driver Tracker — Real-Time Location Tracking System Implementation
+[README (2).md](https://github.com/user-attachments/files/26203369/README.2.md)
+# 🚗 Driver Tracker — Real-Time Location Tracking System
 
-A production-ready backend for real-time driver location tracking, built with **Spring Boot**, **WebSockets**, and **Redis**. Designed for delivery or taxi applications where passengers need to watch a driver's location live — without refreshing.
+A **simplified backend implementation** exploring the core concepts behind real-time driver location tracking, built with **Spring Boot**, **WebSockets**, and **Redis**. This is a learning-oriented project that demonstrates how delivery and taxi apps push live driver location to passengers — without refreshing.
+
 
 ---
 
@@ -107,8 +108,6 @@ jwt.expiration=86400000
 ratelimit.driver.updates-per-second=1
 ratelimit.global.requests-per-minute=100
 ```
-
-> ⚠️ Never commit `jwt.secret` to version control in production. Use environment variables instead.
 
 ---
 
@@ -265,7 +264,7 @@ Two levels of protection using the **Token Bucket algorithm**:
 
 | Level | Limit | Scope |
 |---|---|---|
-| IP-level | 60 requests / minute | All endpoints |
+| IP-level | 100 requests / minute | All endpoints |
 | Driver-level | 1 location update / second | POST /api/driver/location |
 
 When exceeded, the server returns:
@@ -328,6 +327,108 @@ This design supports **horizontal scaling** — multiple server instances share 
 - [ ] Database integration (replace in-memory users)
 - [ ] Docker Compose setup
 - [ ] Unit & integration tests
+
+---
+
+## ⚖️ Simplifications vs Real-World (Uber, Zomato etc.)
+
+This project deliberately uses lighter configurations to focus on the core concepts. Here is an honest comparison of what this project does vs what companies operating at scale actually do.
+
+---
+
+### 👤 User Storage
+
+| | This Project | Real World |
+|---|---|---|
+| Storage | In-memory `HashMap` | PostgreSQL / MySQL with millions of user records |
+| User registration | Hardcoded test users | Full signup flow, email verification, OTP |
+| Password reset | Not implemented | Reset via email/SMS with expiry tokens |
+
+**Why simplified here:** A database would add JPA, schema migrations, and connection pooling — noise that distracts from the real-time tracking concepts we're learning.
+
+---
+
+### 🔐 Authentication
+
+| | This Project | Real World |
+|---|---|---|
+| Token storage | Stateless JWT only | JWT + refresh token rotation, token blacklisting on logout |
+| Secret management | `application.properties` | Vault, AWS Secrets Manager, or environment injection |
+| Token expiry | Fixed 24 hours | Short-lived access tokens (15 min) + long-lived refresh tokens |
+| Multi-device | Not handled | Session management across multiple devices per user |
+
+**Why simplified here:** Refresh token rotation and secret management infrastructure are deployment concerns. The JWT validation flow itself is what matters for understanding auth.
+
+---
+
+### 🗺️ Location Tracking
+
+| | This Project | Real World |
+|---|---|---|
+| Update frequency | 1 update/second max | Adaptive — faster when moving, slower when idle |
+| Location storage | Redis only (ephemeral) | Persisted to a time-series DB (InfluxDB, TimescaleDB) for trip history |
+| Coordinate accuracy | Raw lat/lng | Map-matched to road network (Google Maps Roads API, OSRM) |
+| Trip history | Not stored | Full route replay, distance calculation, fare estimation |
+
+**Why simplified here:** Map matching and time-series storage are entire systems on their own. The Pub/Sub push mechanism is the concept worth learning here.
+
+---
+
+### 🔴 Redis Usage
+
+| | This Project | Real World |
+|---|---|---|
+| Setup | Single local Redis instance | Redis Cluster with replication and failover |
+| Pub/Sub | Basic channel per driver | Kafka or Redis Streams for guaranteed delivery and replay |
+| Data expiry | No TTL set | TTL on all keys to auto-clean stale driver data |
+| Connection pooling | Spring default | Tuned connection pool (Lettuce with thread-safe connections) |
+
+**Why simplified here:** Redis Cluster and Kafka setup requires infrastructure that gets in the way of understanding the Pub/Sub pattern. The single instance demonstrates the concept identically.
+
+---
+
+### 🌐 WebSocket Connections
+
+| | This Project | Real World |
+|---|---|---|
+| Connection limit | JVM thread-limited (~thousands) | Hundreds of thousands via non-blocking event loops (Netty, Vert.x) |
+| Token in URL | `?token=` query param | Sent in WebSocket handshake headers or sub-protocol |
+| Heartbeat / ping | Not implemented | Regular ping/pong frames to detect silent disconnects |
+| Reconnection | Client responsibility | Exponential backoff reconnect built into client SDK |
+
+**Why simplified here:** Non-blocking IO and connection tuning are infrastructure-level concerns. The session management and Pub/Sub push pattern work identically at small scale.
+
+---
+
+### 🛡️ Rate Limiting
+
+| | This Project | Real World |
+|---|---|---|
+| State | In-memory per JVM instance | Distributed rate limiting via Redis (shared across all instances) |
+| Granularity | Per IP + per driver | Per user, per endpoint, per tier (free vs paid driver) |
+| Response | Simple 429 JSON | 429 with `Retry-After` header and detailed error codes |
+
+**Why simplified here:** The token bucket algorithm and the two-level limiting concept are production patterns. The in-memory implementation demonstrates the logic cleanly.
+
+---
+
+### 📦 Infrastructure
+
+| | This Project | Real World |
+|---|---|---|
+| Deployment | Single local instance | Kubernetes with auto-scaling, multiple availability zones |
+| Load balancing | None | L7 load balancer with sticky WebSocket sessions or session affinity |
+| Observability | `System.out.println` | Structured logging (ELK), metrics (Prometheus + Grafana), distributed tracing |
+| Error handling | Basic try-catch | Global exception handlers, dead letter queues, alerting |
+| CI/CD | None | Full pipeline with automated testing, staging, canary deploys |
+
+**Why simplified here:** The architecture patterns (Pub/Sub, WebSocket push, JWT auth) are identical regardless of deployment scale. Infrastructure is a separate discipline.
+
+---
+
+### 🧠 The Key Takeaway
+
+The concepts in this project — **Redis Pub/Sub, WebSocket session management, JWT authentication, and token bucket rate limiting** — are exactly the same concepts used by Uber, Zomato, and Swiggy. What differs is not the pattern but the scale, fault tolerance, and operational maturity around those patterns.
 
 ---
 
